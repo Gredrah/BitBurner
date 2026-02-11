@@ -15,10 +15,15 @@ export async function main(ns) {
   ns.disableLog("ALL");
   ns.ui.openTail(); // Open the script's log window automatically
 
+  let lastMoney = ns.getServerMoneyAvailable(target);
+
   while (true) {
     const moneyCurrent = ns.getServerMoneyAvailable(target);
     const moneyMax = ns.getServerMaxMoney(target);
     const moneyPercent = (moneyCurrent / moneyMax) * 100;
+
+    const growth = moneyCurrent - lastMoney;
+    lastMoney = moneyCurrent;
 
     const secCurrent = ns.getServerSecurityLevel(target);
     const secMin = ns.getServerMinSecurityLevel(target);
@@ -31,6 +36,7 @@ export async function main(ns) {
     ns.clearLog();
     ns.print(`--- MONITORING: ${target} ---`);
     ns.print(`Money    : $${ns.formatNumber(moneyCurrent)} / $${ns.formatNumber(moneyMax)} (${moneyPercent.toFixed(2)}%)`);
+    ns.print(`Growth   : ${growth >= 0 ? "+" : ""}$${ns.formatNumber(growth)}/sec`);
     ns.print(`Security : ${secCurrent.toFixed(3)} (Min: ${secMin.toFixed(3)} | +${secDiff.toFixed(3)})`);
     ns.print(`----------------------------`);
     ns.print(`Hack Time  : ${ns.tFormat(hackTime)}`);
