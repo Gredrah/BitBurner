@@ -29,6 +29,9 @@ export async function main(ns) {
   ns.tprint(`Hacking Ram / Thread: ${hackRam.toFixed(2)} GB | Growing Ram / Thread: ${growRam.toFixed(2)} GB | Weakening Ram / Thread: ${weakenRam.toFixed(2)} GB`);
   ns.tprint(`Home RAM Reserved: ${homeReserve} GB`);
 
+  // Cleanup old masters
+  await reaper(ns, ns.getScriptName(), ns.pid);
+
   // Validation: Ensure worker scripts exist.
   if (hackRam === 0 || growRam === 0 || weakenRam === 0) {
     ns.tprint(`ERROR:One or more scripts not found.`);
