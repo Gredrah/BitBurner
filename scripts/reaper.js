@@ -5,7 +5,7 @@ const master = "scripts/master_deploy.js"
 const hackPattern = "scripts/hack_pattern.js";
 
 /** @param {NS} ns */
-export async function reaper(ns, targetToKill = null) {
+export async function reaper(ns, targetToKill = null, ignorePid = null) {
   if (!targetToKill) {
     const targets = getAllOtherProcesses(ns, ns.getHostname());
 
@@ -25,8 +25,8 @@ export async function reaper(ns, targetToKill = null) {
   for (const host of network.rooted) {
     const hostProcesses = ns.ps(host);
     for (const proc of hostProcesses) {
-      if (proc.filename === targetToKill) {
-        ns.scriptKill(proc.filename, host);
+      if (proc.filename === targetToKill && proc.pid !== ignorePid) {
+        ns.kill(proc.pid, host);
         killCount++;
       }
     }
@@ -37,7 +37,7 @@ export async function reaper(ns, targetToKill = null) {
 }
 
 /** @Param {NS} ns */
-export async function reaperMaster(ns) {
+export async function reaperMaster(ns, ignorePid = null) {
   /**
   const processes = ns.ps();
 
@@ -50,7 +50,7 @@ export async function reaperMaster(ns) {
   */
   
   await reaper(ns, hackPattern);
-  await reaper(ns, master);
+  await reaper(ns, master, ignorePid);
 
   ns.tprint(`Master Reaper: Cleaned ${master} and all ${hackPattern} from the network.`);
 }

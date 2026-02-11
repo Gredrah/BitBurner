@@ -18,7 +18,7 @@ export async function main(ns) {
     return;
   } else {
     ns.tprint(`Cleaning network before deployment...`);
-    await reaperMaster(ns);
+    await reaperMaster(ns, ns.pid);
     ns.tprint(`Network cleaned successfully.`);
   }
 
