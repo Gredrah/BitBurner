@@ -33,7 +33,8 @@ export async function main(ns) {
     lastMoney = moneyCurrent;
 
     const runtime = (Date.now() - startTime) / 1000;
-    const avgProfit = totalStolen / runtime;
+    // Fix: Ensure we don't divide by zero or result in NaN
+    const avgProfit = runtime > 0 ? totalStolen / runtime : 0;
 
     const secCurrent = ns.getServerSecurityLevel(target);
     const secMin = ns.getServerMinSecurityLevel(target);
