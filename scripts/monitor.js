@@ -13,7 +13,7 @@ export async function main(ns) {
   }
 
   ns.disableLog("ALL");
-  ns.tail(); // Open the script's log window automatically
+  ns.ui.openTail(); // Open the script's log window automatically
 
   while (true) {
     const moneyCurrent = ns.getServerMoneyAvailable(target);
