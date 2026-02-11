@@ -33,11 +33,6 @@ export async function main(ns) {
   if (hackRam === 0 || growRam === 0 || weakenRam === 0) {
     ns.tprint(`ERROR:One or more scripts not found.`);
     return;
-  } else {
-    // Initial cleanup: Kill existing scripts before starting fresh.
-    ns.tprint(`Cleaning network before deployment...`);
-    reaper(ns, ns.getScriptName(), ns.pid);
-    ns.tprint(`Network cleaned successfully.`);
   }
 
   // Continuous deployment loop.
@@ -55,9 +50,11 @@ export async function main(ns) {
 
     ns.tprint(`!!! MASTER: Targeting ${target}`);
 
-    // Cleanup: Kill specific scripts on 'home' (Note: 'reaper' might need to be a script path string here).
-    await ns.exec(reaper, "home", 1, "hgw");
-    ns.tprint(`Terminated scripts on ${rooted.length} servers to prepare for deployment.`);
+    // Cleanup: Kill old scripts across the network and wait for it to finish.
+    await reaper(ns, hackScript);
+    await reaper(ns, growScript);
+    await reaper(ns, weakenScript);
+    ns.tprint(`Terminated old scripts to prepare for deployment.`);
 
     let deployCount = 0;
     
