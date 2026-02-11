@@ -1,7 +1,7 @@
 /** @param {NS} ns */
 export async function main(ns) {
   const target = ns.args[0];
-  const moneyThresh = ns.getServerMaxMoney * .75;
+  const moneyThresh = ns.getServerMaxMoney(target) * .75;
   const secThresh = ns.getServerMinSecurityLevel(target) + 5;
 
   while (true) {
