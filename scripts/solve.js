@@ -18,10 +18,10 @@ export function findBestTarget(ns, hostnames) {
     if (host === "home" || ns.getServer(host).purchasedByPlayer) continue;
 
     //TODO: Implement Formulas API
-    let minSec = ns.getServerMinSecurityLevel(host);
-    let growth = Math.log(ns.getServerGrowth(host));
-    let hackTime = ns.getHackTime(host);
-    let successChance = ns.hackAnalyzeChance(host);
+    const minSec = ns.getServerMinSecurityLevel(host);
+    const growth = Math.log(ns.getServerGrowth(host));
+    const hackTime = ns.getHackTime(host);
+    const successChance = ns.hackAnalyzeChance(host);
 
     const score = 
     ((maxMoney * growth)
