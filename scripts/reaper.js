@@ -1,8 +1,11 @@
 import { getRootedServers } from "scripts/network.js"
 import { getAllOtherProcesses } from "scripts/util.js"
 
-const master = "scripts/master_deploy.js"
+const master = "scripts/master_deploy.js";
 const hackPattern = "scripts/hack_pattern.js";
+const hack = "scripts/hack.js";
+const grow = "scripts/grow.js";
+const weaken = "scripts/weaken.js";
 
 /** @param {NS} ns */
 export async function reaper(ns, targetToKill = null, ignorePid = null) {
@@ -61,6 +64,10 @@ export async function main(ns) {
     await reaperMaster(ns);
   } else if (ns.args[0] === "hack") {
     await reaper(ns, hackPattern);
+  } else if (ns.args[0] === "hgw") {
+    await reaper(ns, hack);
+    await reaper(ns, grow);
+    await reaper(ns, weaken);
   } else {
     await reaper(ns, ns.args[0]);
   }
