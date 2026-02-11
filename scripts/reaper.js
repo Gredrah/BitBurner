@@ -51,8 +51,7 @@ export async function reaperMaster(ns, ignorePid = null) {
     }
   }
   */
-  
-  await reaper(ns, hackPattern);
+
   await reaper(ns, master, ignorePid);
 
   ns.tprint(`Master Reaper: Cleaned ${master} and all ${hackPattern} from the network.`);
