@@ -1,3 +1,4 @@
+import { min } from "@tensorflow/tfjs-node";
 import { getRootedServers } from "scripts/network.js";
 
 /** @param {NS} ns */
@@ -24,9 +25,10 @@ export function findBestTarget(ns, hostnames) {
     const successChance = ns.hackAnalyzeChance(host);
 
     const score = 
-    ((maxMoney * growth)
-    / (minSec * hackTime)
-    * successChance);
+    ((maxMoney / hackTime) * // money per second
+    Math.pow(successChance, 3) * // success chance, cubed to prioritize higher chances
+    (growth / minSec) * // growth potential adjusted by security
+    (1 / (1 + minSec / 100))); // penalize higher security (normalized to 0-1)
 
     if (score > best.score) {
       best = {
