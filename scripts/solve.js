@@ -22,9 +22,9 @@ export function findBestTargets(ns, hostnames, count = 5) {
     // Heavily weight max money and success chance
     const score = 
       Math.pow(maxMoney, 0.8) *         // High money capacity is king
-      (successChance / hackTime) *      // Success per second
-      Math.pow(growth, 0.5) *     // Growth matters but less
-      (1 / (1 + minSec / 100));         // penalize higher security (normalized to 0-1)
+      (maxMoney / hackTime) *           // Money per second
+      (growth / minSec) *               // Growth matters but less
+      (1 / (1 + minSec / 100));         // penalize higher security 
 
     targets.push({
       hostname: host,
