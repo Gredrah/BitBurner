@@ -11,6 +11,7 @@ export async function main(ns) {
   // amount of servers
   while (i < ns.getPurchasedServerLimit()) {
     // Check if we have enough money to purchase a server
+    ns.tprint(`Attempting to purchase server #${i} with ${ram}GB RAM. Cost: ${ns.getPurchasedServerCost(ram)}. Available funds: ${ns.getServerMoneyAvailable("home")}`);
     if (ns.getServerMoneyAvailable("home") > ns.getPurchasedServerCost(ram)) {
       // If we have enough money, then:
       //  1. Purchase the server
