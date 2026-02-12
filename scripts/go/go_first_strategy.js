@@ -28,6 +28,32 @@
 };
 
 /**
+ * Detect if a liberty at [x, y] is an "eye" (safe empty space for survival).
+ * Simple heuristic: if all neighbors are either your stones or board edge, it's an eye.
+ */
+function isEye(board, validMoves, x, y, myColor = "X") {
+    const size = board.length;
+    const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+    
+    let friendlyNeighbors = 0;
+    let emptyNeighbors = 0;
+    
+    for (const [nx, ny] of neighbors) {
+        if (nx < 0 || nx >= size || ny < 0 || ny >= size) {
+            // Board edge counts as "friendly"
+            friendlyNeighbors++;
+        } else if (board[nx][ny] === myColor) {
+            friendlyNeighbors++;
+        } else if (board[nx][ny] === ".") {
+            emptyNeighbors++;
+        }
+    }
+    
+    // If most neighbors are your stones (or edges), it's probably an eye
+    return friendlyNeighbors >= 3;
+}
+
+/**
  * 
  * Parses the raw board and chain ID grids into useable chain objects.
  * Returns {black: Chain[], white: Chain[]}
@@ -111,24 +137,38 @@ export function getStrategyMove(ns, board, validMoves) {
         }
     }
 
-    // DEFEND Liberties of 2 (prevent opponent from creating an atari)
+    // DEFEND Liberties of 2 (prevent opponent from creating an atari, preserve eyes)
     const threatenedChains = black.filter(c => c.liberties.length === 2);
     for (const chain of threatenedChains) {
         for (const [x, y] of chain.liberties) {
-            if (validMoves[x][y]) {
+            if (isEye(board, validMoves, x, y)) {
+                ns.print(`Skipping move at (${x}, ${y}) to preserve eye space for survival`);
+                continue; // Skip eyes only here
+            } else if (validMoves[x][y]) {
                 ns.print(`Playing safety move (2 liberties) at (${x}, ${y})`);
                 return [x, y];
             }
         }
     }
 
-    // EXPANSION in case of inability to defend, or if no immediate threats/opportunities
-    // Sort by size and grow largest first
+    // EXPANSION: Grow largest chain - be less picky, just avoid obvious bad eyes
     const sortedChains = black.sort((a, b) => b.stones.length - a.stones.length);
 
     for (const chain of sortedChains) {
-        // Try to play on a liberty of our largest chain to expand it
         for (const [x, y] of chain.liberties) {
+            // Only skip very obvious eyes (surrounded on all 4 sides)
+            const size = board.length;
+            const neighbors = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+            let friendlyCount = 0;
+            for (const [nx, ny] of neighbors) {
+                if ((nx < 0 || nx >= size || ny < 0 || ny >= size) || board[nx][ny] === "X") {
+                    friendlyCount++;
+                }
+            }
+            
+            // Only skip if literally all 4 neighbors are yours/edge (confirmed eye)
+            if (friendlyCount === 4) continue;
+
             if (validMoves[x][y]) {
                 ns.print(`Expanding largest chain at (${x}, ${y})`);
                 return [x, y];
