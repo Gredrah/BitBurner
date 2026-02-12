@@ -8,7 +8,7 @@ export function findBestTargets(ns, hostnames, count = 5) {
   const myLevel = ns.getHackingLevel() / levelModifier;
 
   // Optional: ignore extremely low-value servers once you have options
-  const minMoneyFloor = 1e8; // try 1e6 or 5e6 later if you want
+  const minMoneyFloor = 1e6; // 1 million floor
 
   for (const host of hostnames) {
     if (host === "home" || ns.getServer(host).purchasedByPlayer) continue;
@@ -23,7 +23,9 @@ export function findBestTargets(ns, hostnames, count = 5) {
     if (hackTimeMs <= 0 || !Number.isFinite(hackTimeMs)) continue;
 
     // Core metric: expected dollars per second per thread
-    const expectedDollarsPerHackPerThread = maxMoney * hackPercent * chance;
+    // Use level proximity instead of chance weighting when formulas are unavailable.
+    const levelFactor = Math.min(1, myLevel / Math.max(req, 1));
+    const expectedDollarsPerHackPerThread = maxMoney * hackPercent;
     const expectedDollarsPerSecondPerThread = expectedDollarsPerHackPerThread / (hackTimeMs / 1000);
 
     // Mild modifiers
@@ -35,7 +37,7 @@ export function findBestTargets(ns, hostnames, count = 5) {
     // - exponent tunes how strongly you care about capacity
     const capacityFactor = Math.pow(Math.log10(maxMoney + 1), 1.25);
 
-    const score = expectedDollarsPerSecondPerThread * growthFactor * securityPenalty * capacityFactor;
+    const score = expectedDollarsPerSecondPerThread * levelFactor * growthFactor * securityPenalty * capacityFactor;
 
     targets.push({
       hostname: host,
