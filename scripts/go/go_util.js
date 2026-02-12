@@ -165,24 +165,17 @@ function countEyes(board, myColor = "X") {
   return eyeRegions;
 }
 
-function createsEyeByMove(board, x, y, myColor = "X") {
+function countEyesAfterMove(board, x, y, myColor = "X") {
   const size = board.length;
-  const neighbors = [
-    [x + 1, y], [x - 1, y],
-    [x, y + 1], [x, y - 1]
-  ];
+  const tempBoard = board.map(row => [...row]);
+  tempBoard[x][y] = myColor;
+  return countEyes(tempBoard, myColor);
+}
 
-  for (const [nx, ny] of neighbors) {
-    if (nx < 0 || nx >= size || ny < 0 || ny >= size) continue;
-    if (board[nx][ny] !== ".") continue;
-
-    const wasEye = isEye(board, nx, ny, myColor);
-    if (!wasEye && isEyeAssumingStone(board, nx, ny, myColor, x, y)) {
-      return true;
-    }
-  }
-
-  return false;
+function createsEyeByMove(board, x, y, myColor = "X") {
+  const currentEyes = countEyes(board, myColor);
+  const eyesAfter = countEyesAfterMove(board, x, y, myColor);
+  return eyesAfter > currentEyes;
 }
 
 function countEmptyNeighbors(board, x, y) {
@@ -250,6 +243,7 @@ function is33InvasionPoint(board, x, y, size) {
 export function buildMoveContext(ns, board, validMoves) {
   const chainIds = ns.go.analysis.getChains(board);
   const chains = analyzeChains(board, chainIds);
+  const eyeCount = countEyes(board, "X");
 
   return {
     ns,
@@ -257,7 +251,7 @@ export function buildMoveContext(ns, board, validMoves) {
     validMoves,
     size: board.length,
     chains,
-    eyeCount: countEyes(board, "X")
+    eyeCount
   };
 }
 
@@ -300,12 +294,17 @@ export function scoreMove(board, validMoves, x, y, context) {
     score += SCORE_WEIGHTS.threeThreeInvasion;
   }
 
-  if (eyeCount < 2 && createsEyeByMove(board, x, y, "X")) {
-    let eyeScore = SCORE_WEIGHTS.createEye;
-    if (isCornerRegion(x, y, size)) {
-      eyeScore += SCORE_WEIGHTS.cornerEyeBonus;
+  if (eyeCount < 2) {
+    const eyesAfter = countEyesAfterMove(board, x, y, "X");
+    const eyeGain = eyesAfter - eyeCount;
+    
+    if (eyeGain > 0) {
+      let eyeScore = SCORE_WEIGHTS.createEye * eyeGain;
+      if (isCornerRegion(x, y, size)) {
+        eyeScore += SCORE_WEIGHTS.cornerEyeBonus;
+      }
+      score += eyeScore;
     }
-    score += eyeScore;
   }
 
   if (!capturesAtari && countEmptyNeighbors(board, x, y) < 2) {
