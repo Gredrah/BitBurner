@@ -68,14 +68,14 @@ function isEye(board, x, y, myColor = "X") {
     [x, y + 1], [x, y - 1]
   ];
 
-  let friendlyOrEdge = 0;
+  // ALL orthogonal neighbors must be either friendly stones or board edges
   for (const [nx, ny] of neighbors) {
     if (nx < 0 || nx >= size || ny < 0 || ny >= size) {
-      friendlyOrEdge++;
+      continue; // Edge is safe
     } else if (board[nx][ny] === myColor) {
-      friendlyOrEdge++;
-    } else if (board[nx][ny] === enemy) {
-      return false;
+      continue; // Friendly stone is safe
+    } else {
+      return false; // Enemy or empty = not a true eye
     }
   }
 
@@ -89,7 +89,7 @@ function isEye(board, x, y, myColor = "X") {
     }
   }
 
-  return friendlyOrEdge >= 3;
+  return true;
 }
 
 function isEyeAssumingStone(board, x, y, myColor, placedX, placedY) {
@@ -101,14 +101,14 @@ function isEyeAssumingStone(board, x, y, myColor, placedX, placedY) {
     [x, y + 1], [x, y - 1]
   ];
 
-  let friendlyOrEdge = 0;
+  // ALL orthogonal neighbors must be either friendly stones, the placed stone, or board edges
   for (const [nx, ny] of neighbors) {
     if (nx < 0 || nx >= size || ny < 0 || ny >= size) {
-      friendlyOrEdge++;
+      continue; // Edge is safe
     } else if ((nx === placedX && ny === placedY) || board[nx][ny] === myColor) {
-      friendlyOrEdge++;
-    } else if (board[nx][ny] === enemy) {
-      return false;
+      continue; // Friendly stone or placed stone is safe
+    } else {
+      return false; // Enemy or empty = not a true eye
     }
   }
 
@@ -123,7 +123,7 @@ function isEyeAssumingStone(board, x, y, myColor, placedX, placedY) {
     }
   }
 
-  return friendlyOrEdge >= 3;
+  return true;
 }
 
 function countEyes(board, myColor = "X") {
