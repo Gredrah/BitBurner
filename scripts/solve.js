@@ -25,8 +25,9 @@ export function findBestTarget(ns, hostnames) {
     const successChance = ns.hackAnalyzeChance(host);
 
     const score = 
-    ((maxMoney / hackTime) * // money per second
-    Math.pow(successChance, 3) * // success chance, cubed to prioritize higher chances
+    (Math.pow(maxMoney, 0.8) * // Add a weight to the max money (sub-linear to prevent over-prioritizing high-money servers)
+    (maxMoney / hackTime) * // money per second
+    Math.pow(successChance, 2) * // success chance, squared to prioritize higher chances
     (growth / minSec) * // growth potential adjusted by security
     (1 / (1 + minSec / 100))); // penalize higher security (normalized to 0-1)
 
