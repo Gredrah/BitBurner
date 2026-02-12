@@ -10,7 +10,9 @@ const SCORE_WEIGHTS = {
   corner: 50,
   cornerEyeBonus: 100,
   cornerDefenseMultiplier: 1.5,
-  threeThreeInvasion: 150
+  threeThreeInvasion: 150,
+  defendCuttingPoint: 900,
+  oneEyeDefense: 300
 };
 
 function analyzeChains(board, chainIds) {
@@ -240,10 +242,50 @@ function is33InvasionPoint(board, x, y, size) {
   return enemyPresence;
 }
 
+function findCuttingPoints(chains) {
+  const libertyChainCount = new Map();
+  
+  for (const chain of chains) {
+    for (const [x, y] of chain.liberties) {
+      const key = `${x},${y}`;
+      const count = libertyChainCount.get(key) || 0;
+      libertyChainCount.set(key, count + 1);
+    }
+  }
+  
+  const cuttingPoints = [];
+  for (const [key, count] of libertyChainCount.entries()) {
+    if (count >= 2) {
+      const [x, y] = key.split(',').map(Number);
+      cuttingPoints.push([x, y]);
+    }
+  }
+  
+  return cuttingPoints;
+}
+
+function hasAdjacentEnemy(board, x, y, size) {
+  const neighbors = [
+    [x + 1, y], [x - 1, y],
+    [x, y + 1], [x, y - 1]
+  ];
+  
+  for (const [nx, ny] of neighbors) {
+    if (nx >= 0 && nx < size && ny >= 0 && ny < size) {
+      if (board[nx][ny] === "O") {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
 export function buildMoveContext(ns, board, validMoves) {
   const chainIds = ns.go.analysis.getChains(board);
   const chains = analyzeChains(board, chainIds);
   const eyeCount = countEyes(board, "X");
+  const cuttingPoints = findCuttingPoints(chains.black);
 
   return {
     ns,
@@ -251,15 +293,22 @@ export function buildMoveContext(ns, board, validMoves) {
     validMoves,
     size: board.length,
     chains,
-    eyeCount
+    eyeCount,
+    cuttingPoints
   };
 }
 
 export function scoreMove(board, validMoves, x, y, context) {
   if (!validMoves[x][y]) return -Infinity;
 
-  const { chains, size, eyeCount } = context;
+  const { chains, size, eyeCount, cuttingPoints } = context;
   let score = 0;
+
+  // Defend cutting points - critical to prevent chain splits
+  const isCuttingPoint = cuttingPoints.some(([cx, cy]) => cx === x && cy === y);
+  if (isCuttingPoint) {
+    score += SCORE_WEIGHTS.defendCuttingPoint;
+  }
 
   for (const chain of chains.black) {
     if (chain.liberties.length === 1 && isLibertyOfChain(chain, x, y)) {
@@ -304,6 +353,11 @@ export function scoreMove(board, validMoves, x, y, context) {
         eyeScore += SCORE_WEIGHTS.cornerEyeBonus;
       }
       score += eyeScore;
+    }
+    
+    // When we only have 1 eye, prioritize defensive stones adjacent to opponent
+    if (eyeCount === 1 && hasAdjacentEnemy(board, x, y, size)) {
+      score += SCORE_WEIGHTS.oneEyeDefense;
     }
   }
 
