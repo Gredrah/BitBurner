@@ -1,14 +1,9 @@
-import { min } from "@tensorflow/tfjs-node";
 import { getRootedServers } from "scripts/network.js";
 
 /** @param {NS} ns */
-export function findBestTarget(ns, hostnames) {
-  let best = {
-    hostname: "n00dles",
-    score: 0,
-    chance: 0,
-  };
-
+export function findBestTargets(ns, hostnames, count = 5) {
+  const targets = [];
+  
   const levelModifier = 1; // A divisive modifier to your level to improve success chance. Do not reduce below 1.
   const myLevel = ns.getHackingLevel() / levelModifier;
 
@@ -20,35 +15,55 @@ export function findBestTarget(ns, hostnames) {
 
     //TODO: Implement Formulas API
     const minSec = ns.getServerMinSecurityLevel(host);
-    const growth = Math.log(ns.getServerGrowth(host));
+    const growth = ns.getServerGrowth(host);
     const hackTime = ns.getHackTime(host);
     const successChance = ns.hackAnalyzeChance(host);
 
+    // Heavily weight max money and success chance
     const score = 
-    (Math.pow(maxMoney, 0.8) * // Add a weight to the max money (sub-linear to prevent over-prioritizing high-money servers)
-    (maxMoney / hackTime) * // money per second
-    Math.pow(successChance, 2) * // success chance, squared to prioritize higher chances
-    (growth / minSec) * // growth potential adjusted by security
-    (1 / (1 + minSec / 100))); // penalize higher security (normalized to 0-1)
+      Math.pow(maxMoney, 0.8) *         // High money capacity is king
+      (successChance / hackTime) *      // Success per second
+      Math.pow(growth, 0.5) *     // Growth matters but less
+      (1 / (1 + minSec / 100));         // penalize higher security (normalized to 0-1)
 
-    if (score > best.score) {
-      best = {
-        hostname: host,
-        score: score,
-        chance: successChance,
-      };
-    }
+    targets.push({
+      hostname: host,
+      score: score,
+      chance: successChance,
+      maxMoney: maxMoney,
+      hackTime: hackTime,
+      growth: growth,
+      minSec: minSec,
+    });
   }
-  return best;
+  
+  // Sort by score descending and return top N
+  return targets.toSorted((a, b) => b.score - a.score).slice(0, count);
+}
+
+/** @param {NS} ns */
+export function findBestTarget(ns, hostnames) {
+  const targets = findBestTargets(ns, hostnames, 1);
+  return targets.length > 0 ? targets[0] : {
+    hostname: "n00dles",
+    score: 0,
+    chance: 0,
+  };
 }
 
 /** @Param {NS} ns */
 export async function main(ns) {
   const network = await getRootedServers(ns);
-  const target = findBestTarget(ns, network.rooted);
+  const topTargets = findBestTargets(ns, network.rooted, 5);
   
-  ns.tprint(`--- Target Analysis ---`);
-    ns.tprint(`Best Host: ${target.hostname}`);
-    ns.tprint(`Score:     ${ns.formatNumber(target.score)}`);
-    ns.tprint(`Chance:    ${(target.chance * 100).toFixed(2)}%`);
+  ns.tprint(`--- Top 5 Target Analysis ---`);
+  topTargets.forEach((target, index) => {
+    ns.tprint(`\n#${index + 1}: ${target.hostname}`);
+    ns.tprint(`  Score:     ${ns.formatNumber(target.score)}`);
+    ns.tprint(`  Chance:    ${(target.chance * 100).toFixed(2)}%`);
+    ns.tprint(`  Max Money: ${ns.formatNumber(target.maxMoney)}`);
+    ns.tprint(`  Hack Time: ${ns.tFormat(target.hackTime)}`);
+    ns.tprint(`  Growth:    ${target.growth}`);
+    ns.tprint(`  Min Sec:   ${target.minSec}`);
+  });
 }
