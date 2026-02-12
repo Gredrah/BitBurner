@@ -6,7 +6,11 @@ const SCORE_WEIGHTS = {
   defendAtari: 1000,
   captureAtari: 800,
   center: 50,
-  createEye: 200
+  createEye: 200,
+  corner: 50,
+  cornerEyeBonus: 100,
+  cornerDefenseMultiplier: 1.5,
+  threeThreeInvasion: 150
 };
 
 function analyzeChains(board, chainIds) {
@@ -177,6 +181,47 @@ function isLibertyOfChain(chain, x, y) {
   return chain.liberties.some(lib => lib[0] === x && lib[1] === y);
 }
 
+function isCornerRegion(x, y, size) {
+  const cornerDist = 2;
+  return (x <= cornerDist || x >= size - 1 - cornerDist) &&
+         (y <= cornerDist || y >= size - 1 - cornerDist);
+}
+
+function isChainInCorner(chain, size) {
+  return chain.stones.some(([x, y]) => isCornerRegion(x, y, size));
+}
+
+function is33InvasionPoint(board, x, y, size) {
+  const invasionDist = Math.floor(size / 3);
+  const invasionPoints = [
+    [invasionDist, invasionDist],
+    [invasionDist, size - 1 - invasionDist],
+    [size - 1 - invasionDist, invasionDist],
+    [size - 1 - invasionDist, size - 1 - invasionDist]
+  ];
+  
+  if (!invasionPoints.some(([px, py]) => px === x && py === y)) {
+    return false;
+  }
+  
+  const cornerRadius = 3;
+  let enemyPresence = false;
+  
+  for (let dx = -cornerRadius; dx <= cornerRadius; dx++) {
+    for (let dy = -cornerRadius; dy <= cornerRadius; dy++) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx >= 0 && nx < size && ny >= 0 && ny < size) {
+        if (board[nx][ny] === "O") {
+          enemyPresence = true;
+        }
+      }
+    }
+  }
+  
+  return enemyPresence;
+}
+
 export function buildMoveContext(ns, board, validMoves) {
   const chainIds = ns.go.analysis.getChains(board);
   const chains = analyzeChains(board, chainIds);
@@ -199,7 +244,11 @@ export function scoreMove(board, validMoves, x, y, context) {
 
   for (const chain of chains.black) {
     if (chain.liberties.length === 1 && isLibertyOfChain(chain, x, y)) {
-      score += SCORE_WEIGHTS.defendAtari;
+      let defendScore = SCORE_WEIGHTS.defendAtari;
+      if (isChainInCorner(chain, size)) {
+        defendScore *= SCORE_WEIGHTS.cornerDefenseMultiplier;
+      }
+      score += defendScore;
     }
   }
 
@@ -218,8 +267,20 @@ export function scoreMove(board, validMoves, x, y, context) {
   const centerScore = 1 - (dist / maxDist);
   score += centerScore * SCORE_WEIGHTS.center;
 
+  if (isCornerRegion(x, y, size)) {
+    score += SCORE_WEIGHTS.corner;
+  }
+
+  if (is33InvasionPoint(board, x, y, size)) {
+    score += SCORE_WEIGHTS.threeThreeInvasion;
+  }
+
   if (eyeCount < 2 && createsEyeByMove(board, x, y, "X")) {
-    score += SCORE_WEIGHTS.createEye;
+    let eyeScore = SCORE_WEIGHTS.createEye;
+    if (isCornerRegion(x, y, size)) {
+      eyeScore += SCORE_WEIGHTS.cornerEyeBonus;
+    }
+    score += eyeScore;
   }
 
   if (!capturesAtari && countEmptyNeighbors(board, x, y) < 2) {
