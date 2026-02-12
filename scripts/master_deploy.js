@@ -11,9 +11,9 @@ export async function main(ns) {
   const homeReserve = 64;
 
   // Resource allocation percentages for H/G/W operations.
-  let hackRatio = 0.08;
-  let growRatio = 0.76;
-  let weakenRatio = 0.16;
+  let hackRatio = 0.1;
+  let growRatio = 0.65;
+  let weakenRatio = 0.25;
 
   // Paths to the worker scripts.
   const hackScript = "scripts/hack.js";
@@ -60,7 +60,7 @@ export async function main(ns) {
     const secCurr = ns.getServerSecurityLevel(target);
 
     // If money is low (< 90%) or security is high (+2 above min), prioritize growing/weakening.
-    const needsPriming = (moneyCurr < moneyMax * 0.90) || (secCurr > secMin + 2);
+    const needsPriming = (moneyCurr < moneyMax * 0.65) || (secCurr > secMin * 2.5);
 
     // Only redeploy if the target has changed OR if we need to switch between Priming and Hacking modes.
     // We'll use a simple state string to track this.
@@ -76,8 +76,8 @@ export async function main(ns) {
       ns.tprint(`Terminated old scripts to prepare for deployment.`);
 
       const activeHackRatio = needsPriming ? 0 : hackRatio;
-      const activeGrowRatio = needsPriming ? 0.82 : growRatio;
-      const activeWeakenRatio = needsPriming ? 0.18 : weakenRatio;
+      const activeGrowRatio = needsPriming ? 0.5 : growRatio;
+      const activeWeakenRatio = needsPriming ? 0.5 : weakenRatio;
 
       let deployCount = 0;
       for (const host of rooted) {
