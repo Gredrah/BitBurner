@@ -28,7 +28,6 @@
 };
 
 export function getStrategyMove(ns, board, validMoves) {
-    const opponent = ns.go.getOpponentInfo();
     const chains = ns.go.analysis.getChains();
 
     // ATTACK (Atari) Liberties of 1
