@@ -8,7 +8,7 @@ import { reaper } from "scripts/reaper.js"
  */
 export async function main(ns) {
   // Amount of RAM to keep free on the 'home' server for other scripts.
-  const homeReserve = 64;
+  const homeReserve = ns.getServerMaxRam("home") * 0.125;
 
   // Resource allocation percentages for H/G/W operations.
   const hackRatio = 0.1;
@@ -27,7 +27,7 @@ export async function main(ns) {
 
   ns.tprint(`=== MASTER DEPLOY STARTING ===`);
   ns.tprint(`Hacking Ram / Thread: ${hackRam.toFixed(2)} GB | Growing Ram / Thread: ${growRam.toFixed(2)} GB | Weakening Ram / Thread: ${weakenRam.toFixed(2)} GB`);
-  ns.tprint(`Home RAM Reserved: ${homeReserve} GB`);
+  ns.tprint(`Home RAM Reserved: ${homeReserve.toFixed(2)} GB`);
   ns.tprint(`Ratios - Hack: ${hackRatio} | Grow: ${growRatio} | Weaken: ${weakenRatio}`);
 
   // Cleanup old masters
