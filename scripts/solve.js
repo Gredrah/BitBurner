@@ -3,41 +3,54 @@ import { getRootedServers } from "scripts/network.js";
 /** @param {NS} ns */
 export function findBestTargets(ns, hostnames, count = 5) {
   const targets = [];
-  
-  const levelModifier = 1; // A divisive modifier to your level to improve success chance. Do not reduce below 1.
+
+  const levelModifier = 1; // keep >= 1
   const myLevel = ns.getHackingLevel() / levelModifier;
 
+  // Optional: ignore extremely low-value servers once you have options
+  const minMoneyFloor = 1e8; // try 1e6 or 5e6 later if you want
+
   for (const host of hostnames) {
-    const maxMoney = ns.getServerMaxMoney(host);
-    if (maxMoney <= 0) continue;
-    if (ns.getServerRequiredHackingLevel(host) > myLevel) continue;
     if (host === "home" || ns.getServer(host).purchasedByPlayer) continue;
 
-    //TODO: Implement Formulas API
-    const minSec = ns.getServerMinSecurityLevel(host);
-    const growth = ns.getServerGrowth(host);
-    const hackTime = ns.getHackTime(host);
-    const successChance = ns.hackAnalyzeChance(host);
+    const req = ns.getServerRequiredHackingLevel(host);
+    if (req > myLevel) continue;
 
-    // Heavily weight max money and success chance
-    const score = 
-      Math.pow(maxMoney, 0.8) *         // High money capacity is king
-      (maxMoney / hackTime) *           // Money per second
-      (growth / minSec) *               // Growth matters but less
-      (1 / (1 + minSec / 100));         // penalize higher security 
+    const growth = ns.getServerGrowth(host);
+    const { maxMoney, minSec, chance, hackTimeMs, hackPercent, usedFormulas } = getIdealHackMetrics(ns, host);
+
+    if (maxMoney <= minMoneyFloor) continue;
+    if (hackTimeMs <= 0 || !Number.isFinite(hackTimeMs)) continue;
+
+    // Core metric: expected dollars per second per thread
+    const expectedDollarsPerHackPerThread = maxMoney * hackPercent * chance;
+    const expectedDollarsPerSecondPerThread = expectedDollarsPerHackPerThread / (hackTimeMs / 1000);
+
+    // Mild modifiers
+    const growthFactor = Math.pow(Math.max(growth, 1) / 100, 0.35);
+    const securityPenalty = 1 / (1 + (Math.max(minSec, 1) - 1) / 50);
+
+    // capacity factor (prevents tiny-but-fast servers from dominating
+    // - log10 keeps it from being “all about maxMoney”
+    // - exponent tunes how strongly you care about capacity
+    const capacityFactor = Math.pow(Math.log10(maxMoney + 1), 1.25);
+
+    const score = expectedDollarsPerSecondPerThread * growthFactor * securityPenalty * capacityFactor;
 
     targets.push({
       hostname: host,
-      score: score,
-      chance: successChance,
-      maxMoney: maxMoney,
-      hackTime: hackTime,
-      growth: growth,
-      minSec: minSec,
+      score,
+      chance,
+      maxMoney,
+      hackTime: hackTimeMs,
+      growth,
+      minSec,
+      hackPercent,
+      expectedDollarsPerSecondPerThread,
+      usedFormulas,
     });
   }
-  
-  // Sort by score descending and return top N
+
   return targets.toSorted((a, b) => b.score - a.score).slice(0, count);
 }
 
@@ -55,7 +68,7 @@ export function findBestTarget(ns, hostnames) {
 export async function main(ns) {
   const network = await getRootedServers(ns);
   const topTargets = findBestTargets(ns, network.rooted, 5);
-  
+
   ns.tprint(`--- Top 5 Target Analysis ---`);
   topTargets.forEach((target, index) => {
     ns.tprint(`\n#${index + 1}: ${target.hostname}`);
@@ -66,4 +79,22 @@ export async function main(ns) {
     ns.tprint(`  Growth:    ${target.growth}`);
     ns.tprint(`  Min Sec:   ${target.minSec}`);
   });
+}
+
+/**
+ * Without Formulas.exe we can't accurately compute "ideal state" metrics.
+ * This returns best-effort values using standard API calls.
+ * @param {NS} ns
+ * @param {string} hostname
+ */
+function getIdealHackMetrics(ns, hostname) {
+  const maxMoney = ns.getServerMaxMoney(hostname);
+  const minSec = ns.getServerMinSecurityLevel(hostname);
+
+  // These are based on the server's current state (no Formulas.exe).
+  const chance = ns.hackAnalyzeChance(hostname);
+  const hackTimeMs = ns.getHackTime(hostname);
+  const hackPercent = ns.hackAnalyze(hostname); // fraction per thread
+
+  return { maxMoney, minSec, chance, hackTimeMs, hackPercent, usedFormulas: false };
 }
