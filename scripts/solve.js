@@ -26,7 +26,6 @@ export function findBestTargets(ns, hostnames, count = 5) {
     // Use level proximity instead of chance weighting when formulas are unavailable.
     const levelFactor = Math.min(1, myLevel / Math.max(req, 1));
     const expectedDollarsPerHackPerThread = maxMoney * hackPercent;
-    const expectedDollarsPerSecondPerThread = expectedDollarsPerHackPerThread / (hackTimeMs / 1000);
 
     // Mild modifiers
     const growthFactor = Math.pow(Math.max(growth, 1) / 100, 0.35);
@@ -37,7 +36,7 @@ export function findBestTargets(ns, hostnames, count = 5) {
     // - exponent tunes how strongly you care about capacity
     const capacityFactor = Math.pow(Math.log10(maxMoney + 1), 1.25);
 
-    const score = expectedDollarsPerSecondPerThread * levelFactor * growthFactor * securityPenalty * capacityFactor;
+    const score = expectedDollarsPerHackPerThread * levelFactor * growthFactor * securityPenalty * capacityFactor;
 
     targets.push({
       hostname: host,
@@ -48,7 +47,7 @@ export function findBestTargets(ns, hostnames, count = 5) {
       growth,
       minSec,
       hackPercent,
-      expectedDollarsPerSecondPerThread,
+      expectedDollarsPerHackPerThread,
       usedFormulas,
     });
   }
