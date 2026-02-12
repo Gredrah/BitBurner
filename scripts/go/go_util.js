@@ -128,16 +128,41 @@ function isEyeAssumingStone(board, x, y, myColor, placedX, placedY) {
 
 function countEyes(board, myColor = "X") {
   const size = board.length;
-  let eyes = 0;
+  const visited = Array.from({ length: size }, () => Array(size).fill(false));
+  let eyeRegions = 0;
 
   for (let x = 0; x < size; x++) {
     for (let y = 0; y < size; y++) {
-      if (board[x][y] !== ".") continue;
-      if (isEye(board, x, y, myColor)) eyes++;
+      if (board[x][y] !== "." || visited[x][y]) continue;
+      if (!isEye(board, x, y, myColor)) continue;
+
+      // Found a new eye region - flood fill to mark all connected eye points
+      const stack = [[x, y]];
+      visited[x][y] = true;
+      
+      while (stack.length > 0) {
+        const [cx, cy] = stack.pop();
+        const neighbors = [
+          [cx + 1, cy], [cx - 1, cy],
+          [cx, cy + 1], [cx, cy - 1]
+        ];
+        
+        for (const [nx, ny] of neighbors) {
+          if (nx < 0 || nx >= size || ny < 0 || ny >= size) continue;
+          if (visited[nx][ny]) continue;
+          if (board[nx][ny] !== ".") continue;
+          if (!isEye(board, nx, ny, myColor)) continue;
+          
+          visited[nx][ny] = true;
+          stack.push([nx, ny]);
+        }
+      }
+      
+      eyeRegions++;
     }
   }
 
-  return eyes;
+  return eyeRegions;
 }
 
 function createsEyeByMove(board, x, y, myColor = "X") {
