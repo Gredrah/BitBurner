@@ -11,8 +11,8 @@ export async function main(ns) {
   const homeReserve = ns.getServerMaxRam("home") * 0.125;
 
   // Resource allocation percentages for H/G/W operations.
-  const hackRatio = 0.1;
-  const growRatio = 0.7;
+  const hackRatio = 0.01;
+  const growRatio = 0.79;
   const weakenRatio = 0.2;
 
   // Paths to the worker scripts.
@@ -66,7 +66,7 @@ export async function main(ns) {
       let deployCount = 0;
       for (const host of rooted) {
         let availableRam = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
-        if (host === "home") availableRam -= homeReserve;
+        if (host === "home") availableRam = ns.getServerMaxRam(host) - homeReserve;
         else await ns.scp([hackScript, growScript, weakenScript], host, "home");
 
         const weakenThreads = Math.floor((availableRam * weakenRatio) / weakenRam);
