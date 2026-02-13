@@ -24,8 +24,8 @@ export function findBestTargets(ns, hostnames, count = 5) {
 
     // Core metric: expected dollars per second per thread
     // Use level proximity instead of chance weighting when formulas are unavailable.
-    const levelFactor = Math.min(1, myLevel / Math.max(req, 1));
-    const expectedDollarsPerHackPerThread = maxMoney * hackPercent;
+    const levelFactor = Math.max(0, 1 - (Math.log10(req + 1) / Math.log10(Math.max(myLevel, 1) + 1)));
+    const expectedDollarsPerHackPerThread = (maxMoney * hackPercent) / Math.max(Math.log10(maxMoney + 1), 1);
 
     // Mild modifiers
     const growthFactor = Math.pow(Math.max(growth, 1) / 100, 0.35);
@@ -36,7 +36,7 @@ export function findBestTargets(ns, hostnames, count = 5) {
     // - exponent tunes how strongly you care about capacity
     const capacityFactor = Math.pow(Math.log10(maxMoney + 1), 1.25);
 
-    const score = expectedDollarsPerHackPerThread * levelFactor * growthFactor * securityPenalty * capacityFactor;
+    const score = expectedDollarsPerHackPerThread * growthFactor * securityPenalty * capacityFactor;
 
     targets.push({
       hostname: host,
