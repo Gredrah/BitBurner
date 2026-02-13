@@ -310,6 +310,7 @@ export function scoreMove(board, validMoves, x, y, context) {
     score += SCORE_WEIGHTS.defendCuttingPoint;
   }
 
+  let defendsOwnAtari = false;
   for (const chain of chains.black) {
     if (chain.liberties.length === 1 && isLibertyOfChain(chain, x, y)) {
       let defendScore = SCORE_WEIGHTS.defendAtari;
@@ -317,6 +318,7 @@ export function scoreMove(board, validMoves, x, y, context) {
         defendScore *= SCORE_WEIGHTS.cornerDefenseMultiplier;
       }
       score += defendScore;
+      defendsOwnAtari = true;
     }
   }
 
@@ -361,7 +363,8 @@ export function scoreMove(board, validMoves, x, y, context) {
     }
   }
 
-  if (!capturesAtari && countEmptyNeighbors(board, x, y) < 2) {
+  // Allow low-liberty moves if they're tactically important
+  if (!capturesAtari && !defendsOwnAtari && !isCuttingPoint && countEmptyNeighbors(board, x, y) < 2) {
     return -Infinity;
   }
 
